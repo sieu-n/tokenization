@@ -1,4 +1,10 @@
+import os
+import sys
+
 import streamlit as st
+
+# ".../tokenization"
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 
 def page_2():
