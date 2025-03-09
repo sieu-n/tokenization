@@ -100,10 +100,8 @@ def generate_token_length_plot(decoded_tokens):
 
 
 def main():
-    # Instantiate TokenizerPlayground
     playground = TokenizerPlayground()
 
-    # Title and description
     st.title("🔤 Tokenizer playground")
     st.markdown(
         """
@@ -112,8 +110,11 @@ def main():
     )
 
     # Tokenizer selection
+    model = st.query_params.get("model", ["LLaMA 3"])
     selected_tokenizer = st.selectbox(
-        "Select Tokenizer", list(playground.tokenizers.keys()) + ["✨ Custom"]
+        "Select Tokenizer",
+        list(playground.tokenizers.keys()) + ["✨ Custom"],
+        index=list(playground.tokenizers.keys()).index(model),
     )
     if selected_tokenizer == "✨ Custom":
         selected_tokenizer = st.text_input("Huggingface name:")
@@ -123,7 +124,9 @@ def main():
     # Text input
     input_text = st.text_area(
         "Enter text to tokenize",
-        "Explore how different tokenizers break down text into tokens!🚀",
+        st.query_params.get(
+            "text", "Explore how different tokenizers break down text into tokens!🚀"
+        ),
         height=200,
     )
     if not input_text:
