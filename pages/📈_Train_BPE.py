@@ -131,36 +131,26 @@ def main():
         "`RegexTokenizer` splits on whitespace and punctuation as well as special characters. It is the real tokenizerrs used to reproduce gpt tokenizers, while the implementation of `BasicTokenizer` is straightforward for learning purposes."
     )
 
-    col1, col2, col3 = st.columns([1, 1, 1])
-
-    with col1:
-
-        def _train_tokenizer():
-            print("Training BPE...")
-            if not text:
-                st.error("Please enter some text to train the tokenizer.")
+    def _train_tokenizer():
+        print("Training BPE...")
+        if not text:
+            st.error("Please enter some text to train the tokenizer.")
+            return
+        with st.spinner("Training BPE..."):
+            if model_type == "BasicTokenizer":
+                st.session_state["tokenizer"] = BasicTokenizer()
+            elif model_type == "RegexTokenizer":
+                st.session_state["tokenizer"] = RegexTokenizer()
+            else:
+                st.error("Invalid model type.")
                 return
-            with st.spinner("Training BPE..."):
-                if model_type == "BasicTokenizer":
-                    st.session_state["tokenizer"] = BasicTokenizer()
-                elif model_type == "RegexTokenizer":
-                    st.session_state["tokenizer"] = RegexTokenizer()
-                else:
-                    st.error("Invalid model type.")
-                    return
-                train_logs = st.session_state["tokenizer"].train(
-                    text, vocab_size, verbose=True
-                )
-                st.session_state["train_logs"] = train_logs
-                st.session_state["trained"] = True
+            train_logs = st.session_state["tokenizer"].train(
+                text, vocab_size, verbose=True
+            )
+            st.session_state["train_logs"] = train_logs
+            st.session_state["trained"] = True
 
-        st.button("Train BPE!", on_click=_train_tokenizer)
-    with col2:
-
-        def reset_state():
-            st.session_state["trained"] = False
-
-        st.button("Reset", reset_state)
+    st.button("Train BPE!", on_click=_train_tokenizer)
 
     if st.session_state.get("trained", False) == False:
         return
