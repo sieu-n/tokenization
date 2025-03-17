@@ -1,5 +1,5 @@
 import io
-import random
+import traceback
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,47 +10,34 @@ import transformers
 
 from pages.common import create_colored_text_html
 
+# Dictionary of tokenizers with their model paths
+TOKENIZERS = {
+    "LLaMA 3": "baseten/Meta-Llama-3-tokenizer",
+    "DeepSeek": "deepseek-ai/deepseek-coder-7b-base",
+    "T5": "t5-base",
+    "BERT": "bert-base-uncased",
+    "GPT-2": "gpt2",
+}
 
-class TokenizerPlayground:
-    def __init__(self):
-        # Dictionary of tokenizers with their model paths
-        self.tokenizers = {
-            # since official llama tokenizer needs authentication & api key, ...
-            "LLaMA 3": "baseten/Meta-Llama-3-tokenizer",
-            "DeepSeek": "deepseek-ai/deepseek-coder-7b-base",
-            "T5": "t5-base",
-            "BERT": "bert-base-uncased",
-            "GPT-2": "gpt2",
-        }
 
-    def get_tokenizer(self, tokenizer_name):
-        """Get tokenizer using AutoTokenizer"""
-        try:
-            if tokenizer_name in self.tokenizers:
-                return transformers.AutoTokenizer.from_pretrained(
-                    self.tokenizers[tokenizer_name]
-                )
-            else:
-                return transformers.AutoTokenizer.from_pretrained(tokenizer_name)
+def get_tokenizer(tokenizer_name):
+    """Get tokenizer using AutoTokenizer"""
+    if tokenizer_name in TOKENIZERS:
+        return transformers.AutoTokenizer.from_pretrained(TOKENIZERS[tokenizer_name])
+    else:
+        return transformers.AutoTokenizer.from_pretrained(tokenizer_name)
 
-        except Exception as e:
-            st.error(f"Error loading tokenizer {tokenizer_name}: {e}")
-            return None
 
-    def tokenize_and_analyze(self, tokenizer_name, text):
-        """Tokenize text and generate detailed analysis"""
-        tokenizer = self.get_tokenizer(tokenizer_name)
-        if not tokenizer:
-            raise RuntimeError("Tokenizer not found")
-        try:
-            # Tokenize
-            tokens = tokenizer.encode(text, add_special_tokens=False)
-            decoded_tokens = [tokenizer.decode(t) for t in tokens]
-            return tokens, decoded_tokens
+def tokenize_text(tokenizer_name, text):
+    """Tokenize text and return tokens and decoded tokens"""
+    tokenizer = get_tokenizer(tokenizer_name)
+    if not tokenizer:
+        raise RuntimeError("Tokenizer not found")
 
-        except RuntimeError as e:
-            st.error(f"Error tokenizing text: {e}")
-            return [], []
+    # Tokenize
+    tokens = tokenizer.encode(text, add_special_tokens=False)
+    decoded_tokens = [tokenizer.decode(t) for t in tokens]
+    return tokens, decoded_tokens
 
 
 def generate_token_length_plot(decoded_tokens):
@@ -66,7 +53,7 @@ def generate_token_length_plot(decoded_tokens):
     sns.set_style("whitegrid")
 
     # Create a bar plot with Seaborn
-    ax = sns.barplot(x="Token Index", y="Token Length", data=df, palette="viridis")
+    sns.barplot(x="Token Index", y="Token Length", data=df, palette="viridis")
 
     # Customize the plot
     plt.title("Token Length Distribution", fontsize=16)
@@ -100,8 +87,6 @@ def generate_token_length_plot(decoded_tokens):
 
 
 def main():
-    playground = TokenizerPlayground()
-
     st.title("🔤 Tokenizer playground")
     st.markdown(
         """
@@ -110,12 +95,13 @@ def main():
     )
 
     # Tokenizer selection
-    model = st.query_params.get("model", ["LLaMA 3"])
+    model = st.query_params.get("model", "LLaMA 3")
     selected_tokenizer = st.selectbox(
         "Select Tokenizer",
-        list(playground.tokenizers.keys()) + ["✨ Custom"],
-        index=list(playground.tokenizers.keys()).index(model),
+        list(TOKENIZERS.keys()) + ["✨ Custom"],
+        index=list(TOKENIZERS.keys()).index(model),
     )
+
     if selected_tokenizer == "✨ Custom":
         selected_tokenizer = st.text_input("Huggingface name:")
         if not selected_tokenizer:
@@ -134,9 +120,7 @@ def main():
 
     # Perform tokenization
     with st.spinner("Tokenizing text..."):
-        tokens, decoded_tokens = playground.tokenize_and_analyze(
-            selected_tokenizer, input_text
-        )
+        tokens, decoded_tokens = tokenize_text(selected_tokenizer, input_text)
 
     st.markdown(f"Characters: `{len(input_text)}`\tTokens: `{len(tokens)}`")
 
@@ -157,7 +141,6 @@ def main():
         # Detailed token information
         st.markdown("### Token Details")
         token_df = [{"Token ID": tokens, "Token": decoded_tokens}]
-
         st.dataframe(token_df)
 
         # Show raw token IDs
